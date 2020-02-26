@@ -95,7 +95,7 @@ stmt :: Env -> S -> Env
 stmt env (End) = env
 stmt env (Set v expr) = set env v expr
 stmt env (If t s1 s2) = if test env t then stmt env s1 else stmt env s2
-stmt env (While t ss) = if test env t then stmt (stmt env ss) (While t ss) else env
+stmt env (While t s) = if test env t then stmt (stmt env s) (While t s) else env
 stmt env (Do ss) = run env ss
 
 -- Valuation function for a series of S ([S])
@@ -104,8 +104,8 @@ run env [] = env
 run env (s:ss) = run (stmt env s) ss
 
 -- Valuation function for the prog with initially empty env 
-prog :: [S] -> Env
-prog = run Map.empty
+panda :: [S] -> Env
+panda = run Map.empty
 
 
 p1 = [

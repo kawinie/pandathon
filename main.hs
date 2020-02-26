@@ -116,9 +116,14 @@ p1 = [
                 Set "x" (Add (Get "x") (F 5)),
                 Set "count" (Add (Get "count") (I 1))
             ]
+        ),
+        If (Eq (Get "x") (I 35)) (
+            Do [
+                Set "x" (Sub (Get "x") (F 20))
+            ]
+        ) (
+            Do [
+                Set "x" (Sub (Get "x") (F 10))
+            ]
         )
     ]
-
-mock = Map.fromList [("x", I 11), ("y", I 10)]
-p3 = set mock "x" (I 10)
-p4 = test mock (Lte (Get "x") (I 5))

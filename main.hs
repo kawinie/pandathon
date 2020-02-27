@@ -14,15 +14,31 @@ import qualified Data.Map as Map
 
 
 data E = Get Var
-       | I Int   -- Int primitive
-       | F Float -- Float primitive
-       | B Bool  -- Bool primitive (sugar for Int 0 and 1)
+       | I Int      -- Int primitive
+       | F Float    -- Float primitive
+       | B Bool     -- Bool primitive (sugar for Int 0 and 1)
+       | Str String -- String 
+        -- Pandathlon: 
+        -- Set "x" (Str "Fried")
+        -- Concat (Get "x") (Str " Egg")
+        --
+        -- Python: 
+        -- x = "Fried"
+        -- x + " Egg"
+       | Concat E E 
+       | Func String [String] [S]
        | Add E E
        | Sub E E
        | Mul E E
        | Div E E
-    deriving (Show, Eq, Ord)
+    deriving (Show, Eq)
 
+instance Ord E where
+    (I a) `compare` (I b) = a `compare` b
+    (I a) `compare` (F b) = fromIntegral(a) `compare` b
+    (F a) `compare` (I b) = a `compare` fromIntegral(b)
+    (F a) `compare` (F b) = a `compare` b
+        
 data T = Eq  E E
        | Lt  E E
        | Lte E E
@@ -35,6 +51,7 @@ data S = If T S S
        | Inc Var
        | Dec Var
        | While T S
+       | Call String [String]
        | Do [S]
        | End 
     deriving (Show, Eq)
@@ -97,8 +114,16 @@ val env (Div e1 e2)
         result = (val env e1, val env e2)
         right = snd result
 
-val env e = e
+-- TODO: Strings and operations (1)
+val env (Concat ex1 ex2)
+    | (Str ex1, Str ex2) <- result = Str(ex1 ++ ex2)
+    | (Str ex1, I ex2)   <- result = Str(ex1 ++ show ex2)
+    | (I ex1, Str ex2)   <- result = Str(show ex1 ++ ex2)
+    | (Str ex1, F ex2)   <- result = Str(ex1 ++ show ex2)
+    | (F ex1, Str ex2)   <- result = Str(show ex1 ++ ex2)
+    where result = (val env ex1, val env ex2)
 
+val env e = e
 
 -- Valuation function for T 
 test :: Env -> T -> Bool
@@ -117,6 +142,7 @@ stmt env (Set v expr) = set env v expr
 stmt env (Dec v) = set env v (Sub (get env v) (I 1))
 stmt env (Inc v) = set env v (Add (get env v) (I 1))
 stmt env (Do ss) = run env ss
+
 
 -- Valuation function for a series of S ([S])
 run :: Env -> [S] -> Env
@@ -147,5 +173,18 @@ p1 = [
             ]
         ),
         Dec "x",
-        Dec "x"
+        Dec "x",
+        Set "s" (Str "Panda"),
+        Set "s" (Concat (Get "s") (Str " Panda")),
+        Set "s" (Concat (Get "s ") (F 999))
     ]
+
+-- p2 = [
+--     Func "doSomething" ["x", "y"] [
+--         Set "z" ()
+--     ]
+-- ]
+
+-- Set ("doSomething-x", I 10)
+-- Call "doSomething" [I 5, I 10] --> 
+--     Set "doSomething-x" (I 5), Set ("doSomething-y") (I 10) 

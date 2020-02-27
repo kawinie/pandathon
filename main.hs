@@ -32,6 +32,8 @@ data T = Eq  E E
 
 data S = If T S S
        | Set Var E
+       | Inc Var
+       | Dec Var
        | While T S
        | Do [S]
        | End 
@@ -45,9 +47,18 @@ type Env = Map.Map Var E
 -- Get literal of var v from the env 
 get :: Env -> Var -> E
 get env v
-    | Nothing <- x = error ("Variable " ++ show v ++ " doesn't exist") 
+    | Nothing <- x = error ("ERROR: Variable " ++ show v ++ " doesn't exist") 
     | Just e  <- x = e
     where x = Map.lookup v env 
+
+-- Update and or insert (var, val) if doesn't exist in the env
+set :: Env -> Var -> E -> Env
+set env v1 expr
+    | Just _  <- x = Map.adjust (\x -> y) v1 env
+    | Nothing <- x = Map.insert v1 y env
+    where 
+        x = Map.lookup v1 env
+        y = val env expr
 
 
 -- Get literal value of the expression 
@@ -69,17 +80,24 @@ val env (Sub e1 e2)
     | (F a, I b) <- result = F (a - fromIntegral(b))
     where result = (val env e1, val env e2)
 
-val env e = e
+val env (Mul e1 e2)
+    | (I a, I b) <- result = I (a * b)
+    | (F a, F b) <- result = F (a * b)
+    | (I a, F b) <- result = F (fromIntegral(a) * b)
+    | (F a, I b) <- result = F (a * fromIntegral(b))
+    where result = (val env e1, val env e2)
 
-
--- Update and or insert (var, val) if doesn't exist in the env
-set :: Env -> Var -> E -> Env
-set env v1 expr
-    | Just _  <- x = Map.adjust (\x -> y) v1 env
-    | Nothing <- x = Map.insert v1 y env
+val env (Div e1 e2)
+    | right == I 0 || right == F 0 || right == B False = error "ERROR: Division by zero"
+    | (I a, I b) <- result = I (a `div` b)
+    | (F a, F b) <- result = F (a / b)
+    | (I a, F b) <- result = F (fromIntegral(a) / b)
+    | (F a, I b) <- result = F (a / fromIntegral(b))
     where 
-        x = Map.lookup v1 env
-        y = val env expr
+        result = (val env e1, val env e2)
+        right = snd result
+
+val env e = e
 
 
 -- Valuation function for T 
@@ -93,9 +111,11 @@ test env (Gte e1 e2) = val env (Sub e1 e2) >= (F 0.0)
 -- Valuation function for S
 stmt :: Env -> S -> Env
 stmt env (End) = env
-stmt env (Set v expr) = set env v expr
 stmt env (If t s1 s2) = if test env t then stmt env s1 else stmt env s2
 stmt env (While t s) = if test env t then stmt (stmt env s) (While t s) else env
+stmt env (Set v expr) = set env v expr
+stmt env (Dec v) = set env v (Sub (get env v) (I 1))
+stmt env (Inc v) = set env v (Add (get env v) (I 1))
 stmt env (Do ss) = run env ss
 
 -- Valuation function for a series of S ([S])
@@ -114,7 +134,7 @@ p1 = [
         While (Lte (Get "x") (I 30)) (
             Do [
                 Set "x" (Add (Get "x") (F 5)),
-                Set "count" (Add (Get "count") (I 1))
+                Inc "count"
             ]
         ),
         If (Eq (Get "x") (I 35)) (
@@ -125,5 +145,7 @@ p1 = [
             Do [
                 Set "x" (Sub (Get "x") (F 10))
             ]
-        )
+        ),
+        Dec "x",
+        Dec "x"
     ]

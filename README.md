@@ -1,64 +1,80 @@
-# Pandathlon Guide
+[![Code Size](https://img.shields.io/github/languages/code-size/kawinie/cs381-final-project)](https://img.shields.io/github/languages/code-size/kawinie/cs381-final-project)
 
-## Team Members
-
--   Aaron Galati
--   Kawin Pechetratanapanit
--   Weijie Mo
--   Chuan Cheng
-
-## Imperative
-
+# Pandathon 
+s
 Pandathlon is a general purpose, minimalistic, C-like abstract langauge that focuses on expressibility. The language features implicit type conversion between all data types.
 
-## How to use
+## Getting Started
 
-The language is run on GHCi. The only module to load is main.hs 
+Pandathon supports the following core features
 
-The following important functions can be used in the language:
+- [x] Int, Float, Bool, and String primitives
+- [x] Built-in basic arithmatics
+- [x] If-then-else conditional
+- [x] While loops
+- [x] Implicit conversion between all types
+- [ ] Function decaration and evaluation
+- [ ] First class functions
 
->Set "x" (I 5)
+### Assigning variables
 
-This sets a variable named "x" to be an integer of 5. This could also be set to a float with (F 5.0), or a bool with (B True), or a String with (Str "test").
+`Set` command is used to assign a value to variable. The following example binds "x" to integer 5.
 
->Get "x"
+```haskell
+Set "x" (I 5) // x = 5
+```
 
-This retuns the current value in a variable, if there is one.
+The variable can be reassigned to a different type the same way. Pandathon supports `I Int`, `F Float`, `B Bool`, `Str String`.
 
->Add (value) (value)
+```haskell
+Set "x" (F 5)     // reassigning x to floating point number 5.0`
+Set "x" (Str "5") // x is now a string
+```
+
+### Getting value
+
+`Get` command is used to obtain the value bounded to a variable.
+
+```haskell
+Get "x" // -> Str "5"
+```
+
+### The rest 
+
+```haskell
+Add (value) (value)
+```
 
 This statement will add the two values together. Sub, Mul, Div, can also be used.
 
->Lte (value) (value)
+>`Lte (value) (value)`
 
 This checks if the first value is less than or equal to the second. Gte, Lt, Gt, can also be used for their respective comparisons.
 
->Do [statements]
+>`Do [statements]`
 
 This allows a user to continue within a while loop or an if-then block using a series of further programatic statements.
 
->While (comparison) (Do [statements])
+>`While (comparison) (Do [statements])`
 
 This allows a user to create a while loop with a comparison of values in the parentheses to loop with a block of code. This is followed by a Do block.
 
->If (condition) (Do [statements]) (Do [statements])
+>`If (condition) (Do [statements]) (Do [statements])`
 
 This allows a user to enter an if-then block that starts in on the first Do block if the condition is met otherewise, it moves to the second Do block.
 
 For now, programs can be written by defining it by a name and then proceding to write it in brackets. For example:
 
-<pre>
+```haskell
 test = [  
     Set "x" (I 5),  
     Dec "x"  
 ]
-</pre>
+```
 
-Then, this program can be called by using:
+Then, execute the program by calling `panda test`
 
->panda test
-
-Which should return:
+Which outputs:
 >fromList [("x", I 4)]
 
 as x was decremented by one.
@@ -86,3 +102,10 @@ These must be uncommented in main.hs. Will cause errors
 >panda cubs3
 
 >panda cubs4
+
+## Authors
+
+- Kawin Pechetratanapanit
+- Aaron Galati
+- Weijie Mo
+- Chuan Cheng

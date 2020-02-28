@@ -2,7 +2,7 @@
 
 # Pandathon 
 
-Pandathlon is a general purpose, minimalistic, C-like abstract langauge written in Haskell that focuses on expressibility. The language features implicit type conversion between all data types.
+Pandathon is a general purpose, minimalistic, C-like abstract langauge written in Haskell that focuses on expressibility. The language features implicit type conversion between all data types.
 
 ## Getting Started
 

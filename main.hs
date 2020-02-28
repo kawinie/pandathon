@@ -116,6 +116,8 @@ panda :: [Statement] -> Env
 panda = run Map.empty
 
 
+
+-- Good examples:
 cubs = [
         Set "x" (I 5),
         Set "count" (I 0),
@@ -140,3 +142,24 @@ cubs = [
         Set "s" (Cat (Get "s") (Str " Panda")),
         Set "s" (Cat (Get "s") (Cat (Str " ") (F 999)))
     ]
+-- *Main> panda cubs
+-- fromList [("count",I 6),("s",Str "Panda Panda 999.0"),("x",F 13.0)]
+
+cubs2 = [
+         Set "x" (I 5000),
+         Set "count" (I 0),
+         While (Gte (Get "x")(I 10))(
+             Do[
+                 Set "x" (Div (Get "x")(F 2)),
+                 Inc "count"
+                ]
+        ) 
+    ]
+-- *Main> panda cubs2
+-- fromList [("count",I 9),("x",F 9.765625)]
+
+
+
+-- Bad examples:
+-- cubs3 = [("x", Int)](Set "x" (Lte(I 3)(I 4)))
+-- cubs4 = 

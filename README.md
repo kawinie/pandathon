@@ -1,7 +1,7 @@
 [![Code Size](https://img.shields.io/github/languages/code-size/kawinie/cs381-final-project)](https://img.shields.io/github/languages/code-size/kawinie/cs381-final-project)
 
 # Pandathon 
-s
+
 Pandathlon is a general purpose, minimalistic, C-like abstract langauge that focuses on expressibility. The language features implicit type conversion between all data types.
 
 ## Getting Started

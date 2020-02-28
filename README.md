@@ -13,6 +13,8 @@ Pandathlon is a general purpose, minimalistic, C-like abstract langauge that foc
 
 ## How to use
 
+The language is run on GHCi. The only module to load is main.hs 
+
 The following important functions can be used in the language:
 
 >Set "x" (I 5)
@@ -62,3 +64,25 @@ Which should return:
 as x was decremented by one.
 
 There are more good and thorough examples of how to use the language inside of main.hs
+
+They can be ran with:
+
+Good examples:
+>panda cubs
+
+expected output: 
+
+>fromList [("count",I 6),("s",Str "Panda Panda 999.0"),("x",F 13.0)]
+
+>panda cubs2
+
+expected output: 
+
+>fromList [("count",I 9),("x",F 9.765625)]
+
+Bad examples:  
+These must be uncommented in main.hs. Will cause errors
+
+>panda cubs3
+
+>panda cubs4

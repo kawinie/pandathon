@@ -161,5 +161,6 @@ cubs2 = [
 
 
 -- Bad examples:
--- cubs3 = [("x", Int)](Set "x" (Lte(I 3)(I 4)))
--- cubs4 = 
+-- cubs3 = [("x", Int)](Set "x" (Lte (I 3) (I 4)))
+
+-- cubs4 = [("x", Float)](Set "x" (Gte (I 3) (I 4)))

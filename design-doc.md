@@ -32,15 +32,24 @@ For example, this statement below is a perfectly valid code:
 -   [x] While loops.
 -   [x] Implicit conversion between Int and Float.
 -   [ ] Function decaration and evaluation
+-   [ ] First class functions
+
+These features were chosen as core features as they are necessary to the safety of the language. Without these, many features would become unusable in the language or unsafe.
 
 ### Sugar
 
 -   [x] Boolean type True/False is a sugar for Integer 0/1 respectively
 -   [x] Incrementing/Decrementing by one
 
+These features were chosen as sugar features as they simply make it easier to write programs in the language.
+
 ### Library
 
 -   [x] String concatenation
+
+This feature was chosen as a library feature because it is core functionality provided as a program.
+
+We have satisfied the constraints of the feature menu by having basic data types and operations on them such as addition, subtraction, multiplication, and division. We satisfy conditionals with if-then-else statements accounted for. We satsify the recursion/loops section by having while loops. We have a way to set variable names, thus satisfying the fourth constraint. We have functions planned out which satisfies the fifth constraint. Finally, for the additional features we have satisfied the string constraint by have a String type with operations such as concatenation being possible on them. We have also planned to implement first class functions to satisfy the final additional feature needed. We plan to use first class functions to help move features towards the library level as well.
 
 ### Safety Properties
 
@@ -50,15 +59,19 @@ The language tries its very best to do implicit conversion between types. If tha
 
 > `val :: Env -> E -> E`
 
-**TODO**
+This is the semantic domain for the val function. It outputs a value given an expression. This could be anything from a string concatenation to addition and subtraction to true or false.
+
+> `op :: (Expr, Expr) -> (Int -> Int -> Int) -> (Float -> Float -> Float) -> Expr`
+This is the semantic domain for the op function. It is a helper function for val. It helps by determining what variables it needs to change to a float to prevent type errors.
 
 > `set :: Env -> Var -> E -> Env`
 
-**TODO**
+This is the semantic domain for the set function. It either updates an existing value in the environment or inserts a new value into the environment.
 
 > `get :: Env -> Var -> E`
 
-**TODO**
+This is the semantic domain for the get function. It gets a literal value from the environment or returns that the value does not exist.
+
 
 > `test :: Env -> T -> Bool`
 
@@ -76,6 +89,6 @@ This is the semantic domain for the run function. This function lets a series of
 
 This is the semantic domain for the panda function. This function is for running a block of statements while starting with an empty environment.
 
-**TODO**
 
-We decided on these semantic domains because
+
+We decided on these semantic domains because we needed various levels to get from the core data types to manipulating them like a programming language. This is what makes val, get, set, test, stmt, and run so particularly important as they help come together to make a straightforward language.

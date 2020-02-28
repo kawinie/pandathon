@@ -1,12 +1,12 @@
 import qualified Data.Map as Map
     
 data Expr   = Get Var
-            | I Int      -- Int primitive
-            | F Float    -- Float primitive
-            | B Bool     -- Bool primitive (sugar for Int 0 and 1)
+            | I Int      -- Int 
+            | F Float    -- Float 
+            | B Bool     -- Bool  (sugar for Int 0 and 1)
             | Str String -- String 
             | Cat Expr Expr
-            | Def String [String] [Statement]
+            | Def String [String] Block
             | Add Expr Expr
             | Sub Expr Expr
             | Mul Expr Expr
@@ -26,20 +26,20 @@ data Test   = Eq  Expr Expr
             | Gte Expr Expr
     deriving (Show, Eq)
 
-data Statement  = If Test Statement Statement
+data Statement  = If Test Block Block
                 | Set Var Expr
                 | Inc Var
                 | Dec Var
-                | While Test Statement
+                | While Test Block
                 | Call String [String]
-                | Do [Statement]
+                | Begin Block
                 | End 
         deriving (Show, Eq)
 
-
+type Block = [Statement]
 type Var = String 
 type Env = Map.Map Var Expr
-type StackFrame = [Env]
+type Stack = [Env]
 
 
 -- Get literal of var v from the env 
@@ -89,54 +89,66 @@ val env e = e
 
 -- Valuation function for Test 
 test :: Env -> Test -> Bool
-test env (Eq e1 e2)  = val env (Sub e1 e2) == (F 0.0)
-test env (Lt e1 e2)  = val env (Sub e1 e2) <  (F 0.0)
-test env (Lte e1 e2) = val env (Sub e1 e2) <= (F 0.0)
-test env (Gt e1 e2)  = val env (Sub e1 e2) >  (F 0.0)
-test env (Gte e1 e2) = val env (Sub e1 e2) >= (F 0.0)
+test env (Eq e1 e2)  = val env e1 == val env e2
+test env (Lt e1 e2)  = val env e1 <  val env e2
+test env (Lte e1 e2) = val env e1 <= val env e2
+test env (Gt e1 e2)  = val env e1 >  val env e2
+test env (Gte e1 e2) = val env e1 >= val env e2
 
 -- Valuation function for S
 stmt :: Env -> Statement -> Env
 stmt env (End) = env
-stmt env (If t s1 s2) = if test env t then stmt env s1 else stmt env s2
-stmt env (While t s)  = if test env t then stmt (stmt env s) (While t s) else env
+stmt env (If t ss1 ss2) = if test env t then runBlock env ss1 else runBlock env ss2
+stmt env (While t ss)  = if test env t then stmt (runBlock env ss) (While t ss) else env
 stmt env (Set v expr) = set env v expr
 stmt env (Dec v) = set env v (Sub (get env v) (I 1))
 stmt env (Inc v) = set env v (Add (get env v) (I 1))
-stmt env (Do ss) = run env ss
+stmt env (Begin ss) = runBlock env ss
 
 
 -- Valuation function for a series of S ([S])
-run :: Env -> [Statement] -> Env
-run env [] = env
-run env (s:ss) = run (stmt env s) ss
+-- TODO: remove the stackframe when exiting the block
+-- TODO: push a stackframe on to the stack
+runBlock :: Env -> [Statement] -> Env
+runBlock env [] = env   
+runBlock env (s:ss) = runBlock (stmt env s) ss
 
 -- Valuation function for the prog with initially empty env 
 panda :: [Statement] -> Env
-panda = run Map.empty
+panda = runBlock Map.empty
 
-
+-- Good examples:
 cubs = [
-        Set "x" (I 5),
+        Set "a" (I 0),
+        Set "b" (I 1),
         Set "count" (I 0),
-        While (Lte (Get "x") (I 30)) (
-            Do [
-                Set "x" (Add (Get "x") (F 5)),
-                Inc "count"
-            ]
-        ),
-        If (Eq (Get "x") (I 35)) (
-            Do [
-                Set "x" (Sub (Get "x") (F 20))
-            ]
-        ) (
-            Do [
-                Set "x" (Sub (Get "x") (F 10))
-            ]
-        ),
-        Dec "x",
-        Dec "x",
-        Set "s" (Str "Panda"),
-        Set "s" (Cat (Get "s") (Str " Panda")),
-        Set "s" (Cat (Get "s") (Cat (Str " ") (F 999)))
+        While (Lt (Get "count") (I 10)) [
+            Set "c" (Add (Get "a") (Get "b")),
+            Set "a" (Get "b"),
+            Set "b" (Get "c"),
+            Inc "count"
+        ]
     ]
+     
+-- *Main> panda cubs
+-- fromList [("count",I 6),("s",Str "Panda Panda 999.0"),("x",F 13.0)]
+
+-- cubs2 = [
+--          Set "x" (I 5000),
+--          Set "count" (I 0),
+--          While (Gte (Get "x")(I 10))(
+--              Do[
+--                  Set "x" (Div (Get "x")(F 2)),
+--                  Inc "count"
+--                 ]
+--         ) 
+--     ]
+-- *Main> panda cubs2
+-- fromList [("count",I 9),("x",F 9.765625)]
+
+
+
+-- Bad examples:
+-- cubs3 = [("x", Int)](Set "x" (Lte (I 3) (I 4)))
+
+-- cubs4 = [("x", Float)](Set "x" (Gte (I 3) (I 4)))

@@ -1,5 +1,16 @@
+--
+-- ──────────────────────────────────────────────────── I ──────────
+--   :::::: I M P O R T : :  :   :    :     :        :          :
+-- ──────────────────────────────────────────────────────────────
+--
 import qualified Data.Map as Map
     
+
+--
+-- ────────────────────────────────────────────────────────────────────── II ──────────
+--   :::::: A B S T R A C T   S Y N T A X : :  :   :    :     :        :          :
+-- ────────────────────────────────────────────────────────────────────────────────
+--
 data Expr   = Get Var
             | I Int      -- Int 
             | F Float    -- Float 
@@ -42,14 +53,21 @@ type Env = Map.Map Var Expr
 type Stack = [Env]
 
 
--- Get literal of var v from the env 
+--
+-- ────────────────────────────────────────────────────────────────────────────── III ──────────
+--   :::::: V A L U A T I O N   F U N C T I O N S : :  :   :    :     :        :          :
+-- ────────────────────────────────────────────────────────────────────────────────────────
+--
+
+-- ─── RECEIVE THE LITERAL VALUE OF THE EXPRESSION FROM THE ENVIRONMENT ───────────
 get :: Env -> Var -> Expr
 get env v
-    | Nothing <- value = error ("ERROR: Variable " ++ show v ++ " doesn't exist") 
+    | Nothing <- value = error ("(ERROR) Variable " ++ show v ++ " doesn't exist") 
     | Just e  <- value = e
     where value = Map.lookup v env 
 
--- Update and or insert (var, val) if doesn't exist in the env
+
+-- ─── UPDATE THE VALUE IF EXISTS OR INSERT A NEW ONE OTHERWISE ───────────────────
 set :: Env -> Var -> Expr -> Env
 set env v expr
     | Just _  <- old = Map.adjust (\_ -> new) v env
@@ -58,13 +76,16 @@ set env v expr
         old = Map.lookup v env
         new = val env expr
 
+
 op :: (Expr, Expr) -> (Int -> Int -> Int) -> (Float -> Float -> Float) -> Expr
 op (I a, I b) o _ = I (o a b)
 op (F a, I b) _ o = F (o a (fromIntegral b))
 op (I a, F b) _ o = F (o (fromIntegral a) b)
 op (F a, F b) _ o = F (o a b)
+op _ _ _ = error "(ERROR) Operation cannot be performed"
 
--- Get literal value of the expression 
+
+-- ─── VAL: GET LITERAL VALUE OF THE EXPRESSION ───────────────────────────────────────
 val :: Env -> Expr -> Expr
 val env (Get v)   = get env v
 val env (B True)  = I 1
@@ -73,21 +94,26 @@ val env (Add e1 e2) = op (val env e1, val env e2) (+) (+)
 val env (Sub e1 e2) = op (val env e1, val env e2) (-) (-)
 val env (Mul e1 e2) = op (val env e1, val env e2) (*) (*)
 val env (Div e1 e2)
-    | elem (snd result) [I 0, F 0, B False] = error "ERROR: Division by zero"
+    | elem (snd result) [I 0, F 0, B False] = error "(ERROR) Division by zero"
     | otherwise = op result div (/)
     where result = (val env e1, val env e2)
 
-val env (Cat ex1 ex2)
-    | (Str ex1, Str ex2) <- result = Str(ex1 ++ ex2)
-    | (Str ex1, I ex2)   <- result = Str(ex1 ++ show ex2)
-    | (I ex1, Str ex2)   <- result = Str(show ex1 ++ ex2)
-    | (Str ex1, F ex2)   <- result = Str(ex1 ++ show ex2)
-    | (F ex1, Str ex2)   <- result = Str(show ex1 ++ ex2)
-    where result = (val env ex1, val env ex2)
+
+    -- ─── CONCATENATION ──────────────────────────────────────────────────────────────
+    -- Perform regular concatenation if both expression are string 
+    -- If one of two expressions is a string, convert the other to a string using show()
+val env (Cat e1 e2)
+    | (Str s1, Str s2) <- result = Str(s1 ++ s2)
+    | (Str s, I a)   <- result = Str(s ++ show a)
+    | (I a, Str s)   <- result = Str(show a ++ s)
+    | (Str s, F a)   <- result = Str(s ++ show a)
+    | (F a, Str s)   <- result = Str(show a ++ s)
+    where result = (val env e1, val env e2)
 
 val env e = e
 
--- Valuation function for Test 
+
+-- ─── VALUATION FUNCTION FOR TEST ────────────────────────────────────────────────
 test :: Env -> Test -> Bool
 test env (Eq e1 e2)  = val env e1 == val env e2
 test env (Lt e1 e2)  = val env e1 <  val env e2
@@ -95,7 +121,8 @@ test env (Lte e1 e2) = val env e1 <= val env e2
 test env (Gt e1 e2)  = val env e1 >  val env e2
 test env (Gte e1 e2) = val env e1 >= val env e2
 
--- Valuation function for S
+
+-- ─── VALUATION FUNCTION FOR STATEMENT ────────────────────────────────────────────
 stmt :: Env -> Statement -> Env
 stmt env (End) = env
 stmt env (If t ss1 ss2) = if test env t then runBlock env ss1 else runBlock env ss2
@@ -106,18 +133,20 @@ stmt env (Inc v) = set env v (Add (get env v) (I 1))
 stmt env (Begin ss) = runBlock env ss
 
 
--- Valuation function for a series of S ([S])
+-- ─── VALUATION FUNCTION FOR A SERIES OF STATEMENTS ──────────────────────────────
 -- TODO: remove the stackframe when exiting the block
 -- TODO: push a stackframe on to the stack
 runBlock :: Env -> [Statement] -> Env
 runBlock env [] = env   
 runBlock env (s:ss) = runBlock (stmt env s) ss
 
--- Valuation function for the prog with initially empty env 
+
+-- ─── VALUATION FUNCTION FOR THE PROG WITH INITIALLY EMPTY ENVIRONMENT ───────────
 panda :: [Statement] -> Env
 panda = runBlock Map.empty
 
--- Good examples:
+
+-- Fibbonaci:
 cubs = [
         Set "a" (I 0),
         Set "b" (I 1),

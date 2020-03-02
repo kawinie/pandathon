@@ -21,7 +21,7 @@ Pandathon supports the following core features
 `Set` command is used to assign a value to variable. The following example binds "x" to integer 5.
 
 ```haskell
-Set "x" (I 5) --> 5
+Set "x" (I 5) -- 5
 ```
 
 The variable can be reassigned to a different type the same way. Pandathon supports `I Int`, `F Float`, `B Bool`, `Str String`.
@@ -36,7 +36,7 @@ Set "x" (Str "5") -- x is now a string
 `Get` command is used to retrieve the value bounded to a variable.
 
 ```haskell
-Get "x" --> Str "5"
+Get "x" -- Str "5"
 ```
 
 ### Basic Arithmetics
@@ -44,21 +44,21 @@ Get "x" --> Str "5"
 Pandathon automatically performs implicit conversion between types if possible. This means that you can add Int and Float together or vice versa seemlessly.
 
 ```haskell
-Add (I 5) (I 10) --> 15
-Sub (F 5) (I 10) --> -15.0
-Mul (I 5) (F 10) --> 50.0
-Div (F 5) (F 10) --> 0.5
+Add (I 5) (I 10) -- 15
+Sub (F 5) (I 10) -- -15.0
+Mul (I 5) (F 10) -- 50.0
+Div (F 5) (F 10) -- 0.5
 ```
 
 ### Comparisons
 
 ```haskell
 Set "x" (I 10)
-Lt (Get "x") (F 10)  --> False
-Lte (Get "x") (F 10) --> True
-Gt (Get "x") (F 10)  --> False
-Gte (Get "x") (F 10) --> True
-Eq (Get "x") (F 10)  --> True
+Lt (Get "x") (F 10)  -- False
+Lte (Get "x") (F 10) -- True
+Gt (Get "x") (F 10)  -- False
+Gte (Get "x") (F 10) -- True
+Eq (Get "x") (F 10)  -- True
 ```
 
 ### Control Flow
@@ -98,7 +98,7 @@ cubs = [
     ]
 
 main = do
-    print (panda cubs) --> fromList [("a",I 55),("b",I 89),("c",I 89),("count",I 10)]
+    print (panda cubs) -- fromList [("a",I 55),("b",I 89),("c",I 89),("count",I 10)]
 ```
 
 ## Authors

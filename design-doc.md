@@ -57,14 +57,15 @@ The language tries its very best to do implicit conversion between types. If tha
 
 ## Implementation
 
-> `val :: Env -> E -> E`
+> `val := Env -> Expr`
 
 This is the semantic domain for the val function. It outputs a value given an expression. This could be anything from a string concatenation to addition and subtraction to true or false.
 
 > `op :: (Expr, Expr) -> (Int -> Int -> Int) -> (Float -> Float -> Float) -> Expr`
+
 This is the semantic domain for the op function. It is a helper function for val. It helps by determining what variables it needs to change to a float to prevent type errors.
 
-> `set :: Env -> Var -> E -> Env`
+> `set :: Env -> Expr -> Env`
 
 This is the semantic domain for the set function. It either updates an existing value in the environment or inserts a new value into the environment.
 
@@ -73,11 +74,11 @@ This is the semantic domain for the set function. It either updates an existing 
 This is the semantic domain for the get function. It gets a literal value from the environment or returns that the value does not exist.
 
 
-> `test :: Env -> T -> Bool`
+> `test :: Env -> Bool`
 
 This is the semantic domain for the test valuation function. It gives an evaluation of various mathematical operations such as equality and greater or lesser values returning
 
-> `stmt :: Env -> S -> Env`
+> `stmt :: Env -> Env`
 
 This is the semantic domain for statement valuation function. It allows for core functionality commands to operate such as If-then blocks, while loops, and do blocks.
 

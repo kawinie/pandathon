@@ -12,16 +12,16 @@ import qualified Data.Map as Map
 -- ──────────────────────────────────────────────────────────────────────────────── 
 --
 data Expr   = Get Var
-            | I Int      -- Int 
-            | F Float    -- Float 
-            | B Bool     -- Bool  (sugar for Int 0 and 1)
-            | Str String -- String 
+            | I Int         -- Int 
+            | F Float       -- Float 
+            | B Bool        -- Bool  (sugar for Int 0 and 1)
+            | Str String    -- String 
             | Cat Expr Expr
             | Add Expr Expr
             | Sub Expr Expr
             | Mul Expr Expr
             | Div Expr Expr
-            | Capture Env
+            | Lambda [String] Block
     deriving (Show, Eq)
 
 instance Ord Expr where
@@ -52,10 +52,11 @@ data Statement  = Set Var Expr
                 | DivTo Var Expr
                 | If Test Block Block
                 | While Test Block
-                | Func String [String] Block    -- Declaration 
-                | Call String [String]          -- Application
+                | For Statement Test Statement Block
+                | Func Var [String] Block    -- Declaration 
+                | Call Var [Expr]            -- Application
                 | Begin Block
-                | End 
+                | End
         deriving (Show, Eq)
 
 
@@ -73,53 +74,29 @@ type Stack = [Env]
 -- ────────────────────────────────────────────────────────────────────────────────
 -- ─── RETREIVE THE LITERAL VALUE OF THE EXPRESSION FROM THE ENVIRONMENT ──────────
 -- ────────────────────────────────────────────────────────────────────────────────
-get :: Var -> Env -> Maybe Expr
-get v env
-    -- | Nothing <- value = error ("(ERROR) Variable " ++ show v ++ " doesn't exist") 
-    | Nothing    <- result = Nothing
-    | Just value <- result = Just value
-    where result = Map.lookup v env 
-
-
-getStack :: Var -> [Env] -> Maybe Expr
-getStack v [] = Nothing
-getStack v (env:envs) 
-    | Nothing    <- result = getStack v envs
+get :: Var -> [Env] -> Maybe Expr
+get v [] = Nothing
+get v (env:envs)
+    | Nothing    <- result = get v envs
     | Just value <- result = Just value
     where result = Map.lookup v env
 
--- ────────────────────────────────────────────────────────────────────────────────
--- ─── UPDATE THE VALUE IF EXISTS ─────────────────────────────────────────────────
--- ────────────────────────────────────────────────────────────────────────────────
-set :: Var -> Env -> Expr -> Env
-set v env expr
-    | Just _  <- old = Map.adjust (\_ -> new) v env
-    | Nothing <- old = error ("(ERROR) Variable " ++ show v ++ " doesn't exist")
-    where 
-        old = Map.lookup v env
-        new = val expr env
 
 -- ────────────────────────────────────────────────────────────────────────────────
--- ─── INSERT A NEW VALUE ─────────────────────────────────────────────────────────
+-- ─── ASSIGNMENT ─────────────────────────────────────────────────────────────────
 -- ────────────────────────────────────────────────────────────────────────────────
-pandaLet :: Var -> Env -> Expr -> Env
-pandaLet v env expr
-    | Nothing <- old = Map.insert v new env
-    | Just _  <- old = error ("(ERROR) Variable " ++ show v ++ " has already been declared")
-    where 
-        old = Map.lookup v env
-        new = val expr env
-
-
-pandaLetStack :: Var -> [Env] -> Expr -> [Env]
-pandaLetStack v (env:envs) expr
+pandaLet :: Var -> Expr -> [Env]  -> [Env]
+pandaLet v expr stack@(env:envs) 
     | Nothing <- old = Map.insert v new env : envs
     | Just _  <- old = error ("(ERROR) Variable " ++ show v ++ " has already been declared")
     where 
         old = Map.lookup v env
-        new = val expr env
+        new = val expr stack
 
 
+-- -- ────────────────────────────────────────────────────────────────────────────────
+-- -- ─── UPDATE THE VALUE IF EXISTS ─────────────────────────────────────────────────
+-- -- ────────────────────────────────────────────────────────────────────────────────
 adjust :: Var -> Env -> Expr -> Env 
 adjust v env new
     | Just _  <- result = Map.adjust (\_ -> new) v env
@@ -127,13 +104,14 @@ adjust v env new
     where result = Map.lookup v env
 
 
-setStack :: Var -> [Env] -> Expr -> [Env]
-setStack v stack@(env:envs) expr
+set :: Var -> Expr -> [Env] -> [Env]
+set v expr stack@(env:envs)
     | Just _  <- old = map (\e -> adjust v e new) stack
     | Nothing <- old = error ("(ERROR) Variable " ++ show v ++ " doesn't exist")
     where 
-        old = getStack v stack
-        new = val expr env
+        old = get v stack
+        new = val expr stack
+
 
 
 op :: (Expr, Expr) -> (Int -> Int -> Int) -> (Float -> Float -> Float) -> Expr
@@ -141,130 +119,140 @@ op (I a, I b) o _ = I (o a b)
 op (F a, I b) _ o = F (o a (fromIntegral b))
 op (I a, F b) _ o = F (o (fromIntegral a) b)
 op (F a, F b) _ o = F (o a b)
-op _ _ _ = error "(ERROR) Operation cannot be performed"
+op (a, b) _ _ = error ("(ERROR) Operation cannot be performed: " ++ show a ++ " " ++ show b)
+
 
 -- ────────────────────────────────────────────────────────────────────────────────
 -- ─── GET LITERAL VALUE OF THE EXPRESSION ───────────────────────────────────
 -- ────────────────────────────────────────────────────────────────────────────────
-val :: Expr -> Env -> Expr
-val (Get v) env
+val :: Expr -> [Env] -> Expr
+val (Get v) stack
     | Nothing  <- result = error ("(ERROR) Variable " ++ show v ++ " doesn't exist")
     | Just (e) <- result = e
-    where result = get v env
+    where result = get v stack
     
 
-val (B True) env   = I 1
-val (B False) env  = I 0
-val (Add e1 e2) env = op (val e1 env, val e2 env) (+) (+)
-val (Sub e1 e2) env = op (val e1 env, val e2 env) (-) (-)
-val (Mul e1 e2) env = op (val e1 env, val e2 env) (*) (*)
-val (Div e1 e2) env
+val (B True) stack   = I 1
+val (B False) stack  = I 0
+val (Add e1 e2) stack = op (val e1 stack, val e2 stack) (+) (+)
+val (Sub e1 e2) stack = op (val e1 stack, val e2 stack) (-) (-)
+val (Mul e1 e2) stack = op (val e1 stack, val e2 stack) (*) (*)
+val (Div e1 e2) stack
     | elem (snd result) [I 0, F 0, B False] = error "(ERROR) Division by zero"
     | otherwise = op result div (/)
-    where result = (val e1 env, val e2 env)
+    where result = (val e1 stack, val e2 stack)
 
 
     -- ─── CONCATENATION ──────────────────────────────────────────────────────────────
     -- Perform regular concatenation if both expression are string 
     -- If one of two expressions is a string, convert the other to a string using show()
-val (Cat e1 e2) env
+val (Cat e1 e2) stack
     | (Str s1, Str s2) <- result = Str(s1 ++ s2)
     | (Str s, I a)     <- result = Str(s ++ show a)
     | (I a, Str s)     <- result = Str(show a ++ s)
     | (Str s, F a)     <- result = Str(s ++ show a)
     | (F a, Str s)     <- result = Str(show a ++ s)
-    where result = (val e1 env, val e2 env)
+    where result = (val e1 stack, val e2 stack)
 
-val e env = e
+val e stack = e
 
 
 -- ────────────────────────────────────────────────────────────────────────────────
 -- ─── VALUATION FUNCTION FOR TEST ────────────────────────────────────────────────
 -- ────────────────────────────────────────────────────────────────────────────────
-test :: Test -> Env -> Bool
-test (Eq e1 e2) env  = val e1 env == val e2 env 
-test (Lt e1 e2) env  = val e1 env <  val e2 env
-test (Lte e1 e2) env = val e1 env <= val e2 env
-test (Gt e1 e2) env  = val e1 env >  val e2 env
-test (Gte e1 e2) env = val e1 env >= val e2 env
+test :: Test -> [Env] -> Bool
+test (Eq e1 e2) stack  = val e1 stack == val e2 stack 
+test (Lt e1 e2) stack  = val e1 stack <  val e2 stack
+test (Lte e1 e2) stack = val e1 stack <= val e2 stack
+test (Gt e1 e2) stack  = val e1 stack >  val e2 stack
+test (Gte e1 e2) stack = val e1 stack >= val e2 stack
 
 
 -- ────────────────────────────────────────────────────────────────────────────────
 -- ─── VALUATION FUNCTION FOR STATEMENT ───────────────────────────────────────────
 -- ────────────────────────────────────────────────────────────────────────────────
-stmt ::  Statement -> Env-> Env
-stmt (End) env          = env
-stmt (If t ss1 ss2) env = if test t env then runBlock ss1 env else runBlock ss2 env
-stmt (While t ss) env   = if test t env then stmt (While t ss) (runBlock ss env) else env
-stmt (Set v expr) env   = set v env expr
-stmt (Let v expr) env   = pandaLet v env expr
-stmt (Begin ss)   env   = runBlock ss env -- Enter a block
+stmt ::  Statement -> [Env] -> [Env]
+stmt (End) stack          = stack
+stmt (If t ss1 ss2) stack = if test t stack then stmt (Begin ss1) stack else stmt (Begin ss2) stack
+stmt (While t ss) stack   = if test t stack then stmt (While t ss) (stmt (Begin ss) stack) else stack
+stmt (For init test update ss) stack = stmt (While test (ss ++ [update])) (stmt init stack)
+stmt (Set v expr) stack   = set v expr stack
+stmt (Let v expr) stack   = pandaLet v expr stack
+stmt (Begin ss)   stack   = runBlock ss (Map.empty : stack) -- Enter a block
 
 -- ─── SUGAR ──────────────────────────────────────────────────────────────────────
-stmt (AddTo v expr) env = set v env (Add (val (Get v) env) (expr))
-stmt (SubTo v expr) env = set v env (Sub (val (Get v) env) (expr))
-stmt (MulTo v expr) env = set v env (Mul (val (Get v) env) (expr))
-stmt (DivTo v expr) env = set v env (Div (val (Get v) env) (expr))
-stmt (Dec v) env = stmt (SubTo v (I 1)) env
-stmt (Inc v) env = stmt (AddTo v (I 1)) env
+stmt (AddTo v expr) stack = set v (Add (val (Get v) stack) (expr)) stack
+stmt (SubTo v expr) stack = set v (Sub (val (Get v) stack) (expr)) stack
+stmt (MulTo v expr) stack = set v (Mul (val (Get v) stack) (expr)) stack
+stmt (DivTo v expr) stack = set v (Div (val (Get v) stack) (expr)) stack
+stmt (Dec v) stack = stmt (SubTo v (I 1)) stack
+stmt (Inc v) stack = stmt (AddTo v (I 1)) stack
+
+-- Functions
+stmt (Func v params block) stack = pandaLet v (Lambda params block) stack 
+stmt (Call v args) stack 
+    | Nothing <- result = error ("(ERROR) Function (" ++ v ++ ") doesn't exist")
+    | Just (Lambda params body) <- result = runBlock body (Map.fromList (zip params values) : stack)
+    where 
+        result = get v stack
+        values = map (\x -> val x stack) args
 
 
 -- ────────────────────────────────────────────────────────────────────────────────
 -- ─── VALUATION FUNCTION FOR A SERIES OF STATEMENTS ──────────────────────────────
 -- ────────────────────────────────────────────────────────────────────────────────
--- TODO: remove the stackframe when exiting the block
--- TODO: push a stackframe on to the stack
-runBlock :: [Statement] -> Env -> Env
-runBlock  []  env = env   -- Exit a block
-runBlock (s:ss) env = runBlock ss (stmt s env)
+beginBlock :: [Statement] -> [Env] -> [Env]
+beginBlock ss stack = runBlock ss (Map.empty : stack)
+
+runBlock :: [Statement] -> [Env] -> [Env]
+runBlock [] (lastFrame:[]) = [lastFrame]        -- Keep the last stackframe (global)
+runBlock [] (stackFrame:rest) = rest            -- Exit a block
+runBlock (s:ss) stack = runBlock ss (stmt s stack)
 
 
 -- ────────────────────────────────────────────────────────────────────────────────
 -- ─── VALUATION FUNCTION FOR THE PROG WITH INITIALLY EMPTY ENVIRONMENT ───────────
 -- ────────────────────────────────────────────────────────────────────────────────
-panda :: [Statement] -> Env
-panda ss = runBlock ss Map.empty
+panda :: [Statement] -> [Env]
+panda ss = runBlock ss [Map.empty]
+
+
+pandaStack :: [Statement] -> [Env] -> [Env]
+pandaStack = runBlock
 
 
 -- Fibbonaci:
--- cubs = [
---         Let "a" (I 0),
---         Let "b" (I 1),
---         Let "count" (I 0),
---         Let "c" (I 0),
---         While (Lt (Get "count") (I 10)) [
---             Set "c" (Add (Get "a") (Get "b")),
---             Set "a" (Get "b"),
---             Set "b" (Get "c"),
---             Inc "count"
---         ]
---     ]
+fib = [
+        Let "result" (I 0),
+        Func "fib" ["count"] [
+            Let "a" (I 0),
+            Let "b" (I 1),
+            For (Let "i" (I 0)) (Lt (Get "i") (Get "count")) (Inc "i") [
+                Let "c" (Add (Get "a") (Get "b")),
+                Set "a" (Get "b"),
+                Set "b" (Get "c")
+            ],
+            Set "result" (Get "a")
+        ],
+        Call "fib" [(I 10)]
+    ]
 
+cubs = [
+        Let "result" (I 0),
+        Func "add" ["y"] [
+            Func "+" ["x"] [AddTo "result" (Get "x")],
+            Call "+" [Get "y"]
+        ],
+        Call "add" [(I 10)],
+        Call "add" [(I 20)]
+    ]
+
+demoStack :: [Env] 
 demoStack = [
         Map.fromList [("y", I 2)],
         Map.fromList [("y", I 10)]
     ]
 
 main = do 
-    print (panda [pandaLetStack "x" demoStack (I 10)] )
+    print (Map.fromList (zip ["a", "b", "c"] [(I 10), (F 5), (Str "Panda")]))
      
-
-
--- cubs2 = [
---          Set "x" (I 5000),
---          Set "count" (I 0),
---          While (Gte (Get "x")(I 10))(
---              Do[
---                  Set "x" (Div (Get "x")(F 2)),
---                  Inc "count"
---                 ]
---         ) 
---     ]
--- *Main> panda cubs2
--- fromList [("count",I 9),("x",F 9.765625)]
-
-
--- Bad examples:
--- cubs3 = [("x", Int)](Set "x" (Lte (I 3) (I 4)))
-
--- cubs4 = [("x", Float)](Set "x" (Gte (I 3) (I 4)))

@@ -1,6 +1,6 @@
 [![Code Size](https://img.shields.io/github/languages/code-size/kawinie/cs381-final-project)](https://img.shields.io/github/languages/code-size/kawinie/cs381-final-project)
 
-# Pandathon 
+# Pandathon
 
 Pandathon is a general purpose, minimalistic, C-like abstract langauge written in Haskell that focuses on expressibility. The language features implicit type conversion between all data types.
 
@@ -13,8 +13,8 @@ Pandathon supports the following core features
 - [x] If-then-else conditional
 - [x] While loops
 - [x] Implicit conversion between all types
-- [ ] Function decaration and evaluation
-- [ ] First class functions
+- [x] Function decaration and evaluation
+- [x] First class functions
 
 ### Binding a Variable
 
@@ -80,6 +80,21 @@ This allows a user to enter an if-then block that starts in on the first Do bloc
 ```haskell
 If (condition) [statements] [statements]
 ```
+
+This allows a user to declare a function with arguments and what it will do:
+
+```haskell
+Func "name" ["arg1", "arg2"] [
+    statements
+]
+```
+
+This allows a user to call a declared function, naming the values for the arguments:
+
+```haskell
+Call "name" [(I 1), (I 2)]
+```
+
 
 For now, programs can be written by defining it by a name and then proceding to write it in brackets. Then, execute the program by calling `panda cubs`:
 

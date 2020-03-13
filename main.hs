@@ -41,7 +41,7 @@ data Test   = Eq  Expr Expr
 -- ────────────────────────────────────────────────────────────────────────────────
 -- ─── STATEMENT ──────────────────────────────────────────────────────────────────
 -- ────────────────────────────────────────────────────────────────────────────────
--- Semantic Domain: Env -> Env
+-- Semantic Domain: [Env] -> [Env]
 data Statement  = Set Var Expr
                 | Let Var Expr
                 | Inc Var
@@ -221,7 +221,7 @@ pandaStack :: [Statement] -> [Env] -> [Env]
 pandaStack = runBlock
 
 
--- Fibbonaci:
+-- Fibbonaci example:
 fib = [
         Let "result" (I 0),
         Func "fib" ["count"] [
@@ -237,6 +237,21 @@ fib = [
         Call "fib" [(I 10)]
     ]
 
+
+--swaps two variables
+swap = [
+        Let "resultx" (I 0),
+        Let "resulty" (I 1),
+        Func "swap" ["x", "y"] [
+            Let "temp" (Get "x"),
+            Set "resultx" (Get "y"),
+            Set "resulty" (Get "temp")
+        ],
+        Call "swap" [(Get "resultx"), (Get "resulty")]
+    ]
+
+
+-- example of first class functions in action
 cubs = [
         Let "result" (I 0),
         Func "add" ["y"] [
@@ -247,10 +262,44 @@ cubs = [
         Call "add" [(I 20)]
     ]
 
+cubs2 = [
+        Let "result" (F 1),
+        Func "mul" ["y"][
+            Func "+" ["x"] [MulTo "result" (Get "x")],
+            Call "+" [Get "y"]
+        ],
+        Call "mul" [(I 5)],
+        Call "mul" [(F 8.5)]
+    ]
+
+cubs3 = [
+        Let "x" (I, 0)]
+        (Set "x" (Lte(I 3)(I 4)))   
+    
+
+-- string concatenation
+testing1 = [
+        Let "x" (I 0),
+        Let "max" (I 10),
+        Let "String1" (Str "test"),
+        While (Lt (Get "x") (Get "max")) [
+            Set "String1" (Cat (Get "String1") (Get "String1")),
+            Inc "x"
+        ]
+    ]
+
+{- testing2 = [
+        Let "s1" (Str "test"),
+        For (Set "i" (I 0)) (Lt (Get "i") (I 10)) (Inc "i") [
+            Set "s1" (Cat (Get "s1") (Get "s1"))
+        ]
+    ] -}
+
 demoStack :: [Env] 
 demoStack = [
-        Map.fromList [("y", I 2)],
-        Map.fromList [("y", I 10)]
+        Map.fromList [("resultx", (I 0)), ("resulty", (I 1))]
+        -- Map.fromList [("y", I 2)],
+        -- Map.fromList [("y", I 10)]
     ]
 
 main = do 

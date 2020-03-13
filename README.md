@@ -89,7 +89,7 @@ Func "name" ["arg1", "arg2"] [
 ]
 ```
 
-This allows a user to call a declared function, naming the values for the arguments:
+This allows a user to call a declared function, naming the values for the arguments which will be assigned to each argument name in corresponding order:
 
 ```haskell
 Call "name" [(I 1), (I 2)]
@@ -115,6 +115,30 @@ cubs = [
 main = do
     print (panda cubs) --> fromList [("a",I 55),("b",I 89),("c",I 89),("count",I 10)]
 ```
+
+Programs can also be written with an environment given to the program to use. For example:
+
+```haskell
+swap = [
+        Func "swap" ["x", "y"] [
+            Let "temp" (Get "x"),
+            Set "resultx" (Get "y"),
+            Set "resulty" (Get "temp")
+        ],
+        Call "swap" [(Get "resultx"), (Get "resulty")]
+    ]
+
+demoStack :: [Env] 
+demoStack = [
+        Map.fromList [("resultx", (I 0)), ("resulty", (I 1))]
+    ]
+```
+and called with the following command:
+
+```haskell
+pandaStack swap demoStack
+```
+
 
 ## Authors
 
